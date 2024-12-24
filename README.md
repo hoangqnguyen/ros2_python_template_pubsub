@@ -33,3 +33,5 @@ To perform a fresh build and then run the `talker` node, use:
 ```sh
 make NODE=talker
 ```
+
+This runs `clean`, `build`, and then `run` sequentially.
