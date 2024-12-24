@@ -26,4 +26,4 @@ clean:
 
 .PHONY: echo
 echo:
-	ros2 topic echo /topic
+	ros2 topic echo /button_event
