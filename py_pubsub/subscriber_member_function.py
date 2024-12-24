@@ -1,36 +1,40 @@
-# Copyright 2016 Open Source Robotics Foundation, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import rclpy
 from rclpy.node import Node
-
 from std_msgs.msg import String
+import serial
+from . import morse
 
 
 class MinimalSubscriber(Node):
 
     def __init__(self):
-        super().__init__('minimal_subscriber')
+        super().__init__("minimal_subscriber")
         self.subscription = self.create_subscription(
-            String,
-            'topic',
-            self.listener_callback,
-            10)
+            String, "button_event", self.listener_callback, 10
+        )
         self.subscription  # prevent unused variable warning
+
+        self.serial_port = "/dev/ttyACM2"  # Replace with your Arduino's serial port
+        self.baud_rate = 9600
+        self.arduino = None
+
+        # Initialize the serial connection to the Arduino
+        try:
+            self.arduino = serial.Serial(self.serial_port, self.baud_rate, timeout=1)
+            self.get_logger().info(f"Connected to Arduino on {self.serial_port}")
+        except serial.SerialException as e:
+            self.get_logger().error(f"Failed to connect to Arduino: {e}")
 
     def listener_callback(self, msg):
         self.get_logger().info('I heard: "%s"' % msg.data)
+
+        # Send the received message to the Arduino
+        if self.arduino:
+            try:
+                self.arduino.write((morse.decrypt(msg.data) + "\n").encode("utf-8"))
+                self.get_logger().info(f'Sent to Arduino: "{msg.data}"')
+            except Exception as e:
+                self.get_logger().error(f"Error sending to Arduino: {e}")
 
 
 def main(args=None):
@@ -38,14 +42,16 @@ def main(args=None):
 
     minimal_subscriber = MinimalSubscriber()
 
-    rclpy.spin(minimal_subscriber)
+    try:
+        rclpy.spin(minimal_subscriber)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if minimal_subscriber.arduino:
+            minimal_subscriber.arduino.close()
+        minimal_subscriber.destroy_node()
+        rclpy.shutdown()
 
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    minimal_subscriber.destroy_node()
-    rclpy.shutdown()
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

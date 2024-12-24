@@ -2,7 +2,6 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 import serial
-from . import morse
 
 
 class MinimalPublisher(Node):
@@ -30,7 +29,7 @@ class MinimalPublisher(Node):
                 line = self.arduino.readline().decode("utf-8").strip()
                 if any(c in line for c in [".", "-"]):
                     msg = String()
-                    msg.data = morse.decrypt(line)
+                    msg.data = line
                     self.publisher_.publish(msg)
                     self.get_logger().info(f'Published: "{msg.data}"')
             except Exception as e:
