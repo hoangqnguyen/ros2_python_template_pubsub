@@ -8,12 +8,20 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 String messages[MAX_MESSAGES]; // Circular buffer for messages
 int messageIndex = 0;          // Index for the current message
 
+const int ledPin = 13;          // LED connected to pin 13
+const int potPin = A0;          // Potentiometer connected to analog pin A0
+volatile bool ledOn = false;    // Flag to indicate LED state
+int lastPotValue = 0;           // Last potentiometer value
+
 void setup()
 {
     Serial.begin(9600);      // Initialize serial communication
     lcd.begin(16, 2);        // Initialize the LCD
     lcd.clear();             // Clear the display
     lcd.print("Waiting..."); // Initial message
+
+    pinMode(ledPin, OUTPUT);         // Set LED pin as output
+    attachInterrupt(digitalPinToInterrupt(d7), handleInterrupt, CHANGE); // Attach interrupt to potentiometer
 }
 
 void loop()
@@ -51,4 +59,22 @@ void loop()
             lcd.print(displayText.substring(16, 32)); // Display the second line
         }
     }
+
+    // If interrupt flag is set, turn on LED
+    if (ledOn)
+    {
+        digitalWrite(ledPin, HIGH);
+    }
+    else
+    {
+        digitalWrite(ledPin, LOW);
+    }
+}
+
+// Interrupt service routine (ISR) to handle potentiometer or message arrival
+void handleInterrupt()
+{
+    ledOn = true;
+    delay(500);  // Small delay to stabilize the LED state
+    ledOn = false;
 }
